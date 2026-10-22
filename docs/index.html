@@ -164,7 +164,7 @@ function renderCards() {
 async function select(key) {
   current = key; renderCards();
   history.replaceState(null, "", "#" + key);
-  cache[key] ??= await fetch(`data/${key}.json`).then(r => r.json());
+  cache[key] ??= await fetch(`data/${key}.json`, { cache: "no-cache" }).then(r => r.json());
   renderDetail(cache[key]);
 }
 
@@ -269,7 +269,7 @@ function drawCharts(d) {
 }
 
 (async () => {
-  index = await fetch("data/index.json").then(r => r.json());
+  index = await fetch("data/index.json", { cache: "no-cache" }).then(r => r.json());
   document.getElementById("generated").textContent = "Updated " + index.generated.replace("T", " ").replace("Z", " UTC");
   const want = location.hash.slice(1);
   await select(index.assets.some(a => a.key === want) ? want : index.assets[0].key);
