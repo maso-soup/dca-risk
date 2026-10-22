@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-22T15:54Z",
+ "generated": "2026-10-22T15:55Z",
  "zones": [
   {
    "max": 0.2,
@@ -87,7 +87,7 @@
    "change_13w": -0.0177,
    "plan": {
     "action": "sell",
-    "pace": 0.005223757133030915,
+    "pace": 0.00522375713303101,
     "text": "Sell 0.5% of holdings per week"
    }
   },
@@ -97,15 +97,15 @@
    "symbol": "XAG",
    "confidence": "medium",
    "date": "2026-10-22",
-   "price": 55.235001,
-   "risk": 0.5515,
+   "price": 55.224998,
+   "risk": 0.5513,
    "risk_week_close": 0.5768,
    "week_close_date": "2026-10-18",
    "raw_zone": "hold",
    "zone": "hold",
-   "change_1w": -0.0238,
-   "change_4w": -0.1373,
-   "change_13w": -0.0522,
+   "change_1w": -0.024,
+   "change_4w": -0.1375,
+   "change_13w": -0.0524,
    "plan": {
     "action": "hold",
     "pace": 0.0,
