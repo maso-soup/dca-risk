@@ -25,16 +25,19 @@ multi-year DCA in/out decisions, with a static dashboard on GitHub Pages. No pai
 | 0.6–0.8 | Trim | Sell 0–1% of holdings |
 | > 0.8 | Sell | Sell 1% → 15% of holdings (convex in risk), can reach 100% cash |
 
-### BTC components
+### Components by asset
 
-| Metric | Group | Weight |
+Weights in parentheses. "Cycle" metrics carry most of the weight.
+
+| Asset | Components | Backtest vs plain DCA |
 |---|---|---|
-| Log-regression residual (log price vs log days since genesis, refit daily on past data) | cycle | 30% |
-| MVRV (market cap / realized cap) | cycle | 25% |
-| Price / 200-week SMA | cycle | 20% |
-| Pi Cycle (111D SMA / 2×350D SMA) | cycle | 10% |
-| Mayer Multiple (price / 200D SMA) | trend | 10% |
-| Weekly RSI(14) | momentum | 5% |
+| **BTC** | Log-regression residual (30), MVRV (25), Price/200W SMA (20), Pi Cycle (10), Mayer Multiple (10), Weekly RSI (5) | Wins 4 of 5 start years, ~half the drawdown |
+| **ETH** | MVRV (30), Log-regression residual (25), Price/200W SMA (20), Mayer (15), Weekly RSI (10) | Wins every start year |
+| **Gold** | Log-linear trend residual (25), Price/200W SMA (25), Gold/M2 (15), Gold vs 10Y real yield residual (15), Mayer (10), Weekly RSI (10) | **Trails** every start year: secular bulls stay "expensive" for years. Use as a valuation gauge. |
+| **Silver** | Gold/silver ratio, inverted (25), Log-linear trend residual (20), Price/200W SMA (20), Mayer (15), Silver/M2 (10), Weekly RSI (10) | Wins every start year |
+| **ADA** | ADA/BTC vs 1-year average (25), BTC cycle risk (20), Log-regression residual (20), Price/200W SMA (20), Mayer (10), Weekly RSI (5) | Wins every start year, but low confidence (~1.5 cycles of data) |
+
+Crypto uses a ~4-year normalization half-life; metals use ~8 years. M2 is lagged 45 days to match its publication delay.
 
 ## Run locally
 

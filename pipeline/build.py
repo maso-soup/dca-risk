@@ -11,16 +11,34 @@ import pandas as pd
 
 import backtest
 from fetch import load
-from metrics import ZONES, btc_components, composite, weekly_signal
+import metrics as M
+from metrics import ZONES, composite, weekly_signal
 
 OUT = Path(__file__).resolve().parent.parent / "docs" / "data"
 
 ASSETS = {
-    "btc": dict(name="Bitcoin", symbol="BTC", source="btc", components=btc_components,
-                chart_start="2013-01-01", backtest_starts=["2015-01-01", "2017-01-01", "2019-01-01",
-                                                           "2021-01-01", "2023-01-01"],
+    "btc": dict(name="Bitcoin", symbol="BTC", components=M.btc_components, chart_start="2013-01-01",
+                backtest_starts=["2015-01-01", "2017-01-01", "2019-01-01", "2021-01-01", "2023-01-01"],
                 confidence="high", note="5 full cycles of history; on-chain MVRV available."),
+    "eth": dict(name="Ethereum", symbol="ETH", components=M.eth_components, chart_start="2017-01-01",
+                backtest_starts=["2018-06-01", "2019-01-01", "2021-01-01", "2023-01-01"],
+                confidence="medium", note="~2.5 cycles of history; on-chain MVRV available."),
+    "gold": dict(name="Gold", symbol="XAU", components=M.gold_components, chart_start="2004-01-01",
+                 backtest_starts=["2005-01-01", "2008-01-01", "2011-01-01", "2015-01-01", "2020-01-01"],
+                 confidence="medium",
+                 note="COMEX front-month futures, ~8-year normalization window. Backtest TRAILS plain DCA from "
+                      "every start: in secular bulls (2005–08, 2024–26) gold stays 'expensive' for years. "
+                      "Treat this as a valuation gauge, not a timing rule."),
+    "silver": dict(name="Silver", symbol="XAG", components=M.silver_components, chart_start="2004-01-01",
+                   backtest_starts=["2005-01-01", "2008-01-01", "2011-01-01", "2015-01-01", "2020-01-01"],
+                   confidence="medium", note="COMEX front-month futures. Gold/silver ratio is the anchor metric."),
+    "ada": dict(name="Cardano", symbol="ADA", components=M.ada_components, chart_start="2020-01-01",
+                backtest_starts=["2021-01-01", "2022-01-01", "2023-01-01"],
+                confidence="low",
+                note="Only ~1.5 cycles of history (Dec 2017+), so it leans on BTC's cycle risk and ADA/BTC strength."),
 }
+
+DAILY_FILL = {"gold", "silver"}  # trading-day series -> calendar days so day-based windows match crypto
 
 
 def _num(v, nd=4):
@@ -37,9 +55,8 @@ def _dates(idx) -> list[str]:
     return [d.strftime("%Y-%m-%d") for d in idx]
 
 
-def build_asset(key: str, cfg: dict, tbill: pd.Series, refresh: bool) -> dict:
-    df = load(cfg["source"], refresh=refresh)
-    comps = cfg["components"](df)
+def build_asset(key: str, cfg: dict, df: pd.DataFrame, ctx: dict, tbill: pd.Series) -> tuple[pd.Series, dict]:
+    comps = cfg["components"](df, ctx)
     risk = composite(comps)
     sig = weekly_signal(risk)
     last_day = df.index[-1]
@@ -64,7 +81,7 @@ def build_asset(key: str, cfg: dict, tbill: pd.Series, refresh: bool) -> dict:
     cs = pd.concat({c["key"]: c["score"] for c in comps}, axis=1).loc[chart_start:]
     cs_w = cs.resample("W-SUN").last()
 
-    return {
+    return risk, {
         "key": key, "name": cfg["name"], "symbol": cfg["symbol"],
         "confidence": cfg["confidence"], "note": cfg["note"],
         "latest": {
@@ -99,11 +116,20 @@ def build_asset(key: str, cfg: dict, tbill: pd.Series, refresh: bool) -> dict:
 
 def main(refresh: bool = True) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    tbill = load("tbill", refresh=refresh)["DTB3"]
+    raw = {}
+    for name in ["tbill", "m2", "real_yield", *ASSETS]:
+        df = load(name, refresh=refresh)
+        raw[name] = df.asfreq("D").ffill() if name in DAILY_FILL else df
+    tbill = raw["tbill"]["DTB3"]
+    # cross-asset inputs; btc_risk is filled in once BTC is built (ASSETS lists BTC first)
+    ctx = {"m2": raw["m2"]["M2SL"], "real_yield": raw["real_yield"]["DFII10"],
+           "btc_price": raw["btc"]["price"], "gold_price": raw["gold"]["price"]}
+
     index = {"generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
              "zones": [{"max": ub, "key": k, "label": lbl} for ub, k, lbl in ZONES], "assets": []}
     for key, cfg in ASSETS.items():
-        data = build_asset(key, cfg, tbill, refresh)
+        risk, data = build_asset(key, cfg, raw[key], ctx, tbill)
+        ctx[f"{key}_risk"] = risk
         (OUT / f"{key}.json").write_text(json.dumps(data, separators=(",", ":")))
         index["assets"].append({"key": key, "name": data["name"], "symbol": data["symbol"],
                                 "confidence": data["confidence"], **data["latest"]})

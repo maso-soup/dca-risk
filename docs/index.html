@@ -82,7 +82,9 @@ td.num, th.num { text-align: right; }
 .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
 .win { color: #0ca30c; } .loss { color: #d03b3b; }
 details summary { cursor: pointer; color: var(--text-secondary); }
-@media (max-width: 760px) { .hero { grid-template-columns: 1fr; } .hide-sm { display: none; } .chart { height: 280px; } }
+@media (max-width: 760px) { .hero { grid-template-columns: 1fr; } .hide-sm { display: none; }
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .card { padding: 10px; } .card .risk { font-size: 24px; } .card .sym .muted { display: none; } .chart { height: 280px; } }
 </style>
 </head>
 <body>
@@ -204,13 +206,14 @@ function renderDetail(d) {
     <div class="panel">
       <h2>Components</h2>
       <div class="tbl"><table>
-        <thead><tr><th>Metric</th><th class="hide-sm">Group</th><th class="num">Weight</th><th class="num">Current value</th><th class="num">Score</th><th></th></tr></thead>
+        <thead><tr><th>Metric</th><th class="hide-sm">Group</th><th class="num">Weight</th><th class="num">Current value</th><th class="num">Score</th><th class="hide-sm"></th></tr></thead>
         <tbody>${d.components.map(c => {
           const z = c.score < .2 ? "strong_buy" : c.score < .4 ? "buy" : c.score < .6 ? "hold" : c.score < .8 ? "trim" : "sell";
-          const raw = c.fmt === "x" ? c.raw.toFixed(2) + "×" : c.fmt === "rsi" ? c.raw.toFixed(1) : (c.raw > 0 ? "+" : "") + c.raw.toFixed(3);
+          const raw = c.raw == null ? "–" : c.fmt === "x" ? c.raw.toFixed(2) + "×" : c.fmt === "rsi" ? c.raw.toFixed(1)
+            : c.fmt === "score" ? c.raw.toFixed(2) : c.fmt === "ratio" ? c.raw.toPrecision(3) : (c.raw > 0 ? "+" : "") + c.raw.toFixed(3);
           return `<tr><td>${c.label}</td><td class="muted hide-sm">${c.group}</td><td class="num">${Math.round(c.weight * 100)}%</td>
-            <td class="num">${raw}</td><td class="num">${c.score.toFixed(2)}</td>
-            <td><div class="bar"><i style="width:${c.score * 100}%;background:var(--z-${z})"></i></div></td></tr>`;
+            <td class="num">${raw}</td><td class="num">${c.score == null ? "–" : c.score.toFixed(2)}</td>
+            <td class="hide-sm"><div class="bar"><i style="width:${c.score * 100}%;background:var(--z-${z})"></i></div></td></tr>`;
         }).join("")}</tbody>
       </table></div>
     </div>

@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-22T15:50Z",
+ "generated": "2026-10-22T15:54Z",
  "zones": [
   {
    "max": 0.2,
@@ -43,6 +43,90 @@
    "change_1w": 0.0204,
    "change_4w": -0.0028,
    "change_13w": 0.1763,
+   "plan": {
+    "action": "buy",
+    "pace": 0.05,
+    "text": "Deploy 5.0% of cash reserve per week (+ new contributions)"
+   }
+  },
+  {
+   "key": "eth",
+   "name": "Ethereum",
+   "symbol": "ETH",
+   "confidence": "medium",
+   "date": "2026-10-21",
+   "price": 2473.581103,
+   "risk": 0.3786,
+   "risk_week_close": 0.3695,
+   "week_close_date": "2026-10-18",
+   "raw_zone": "buy",
+   "zone": "buy",
+   "change_1w": 0.0065,
+   "change_4w": -0.085,
+   "change_13w": 0.1665,
+   "plan": {
+    "action": "buy",
+    "pace": 0.05,
+    "text": "Deploy 5.0% of cash reserve per week (+ new contributions)"
+   }
+  },
+  {
+   "key": "gold",
+   "name": "Gold",
+   "symbol": "XAU",
+   "confidence": "medium",
+   "date": "2026-10-22",
+   "price": 4066.100098,
+   "risk": 0.7045,
+   "risk_week_close": 0.7317,
+   "week_close_date": "2026-10-18",
+   "raw_zone": "trim",
+   "zone": "trim",
+   "change_1w": -0.0257,
+   "change_4w": -0.07,
+   "change_13w": -0.0177,
+   "plan": {
+    "action": "sell",
+    "pace": 0.005223757133030915,
+    "text": "Sell 0.5% of holdings per week"
+   }
+  },
+  {
+   "key": "silver",
+   "name": "Silver",
+   "symbol": "XAG",
+   "confidence": "medium",
+   "date": "2026-10-22",
+   "price": 55.235001,
+   "risk": 0.5515,
+   "risk_week_close": 0.5768,
+   "week_close_date": "2026-10-18",
+   "raw_zone": "hold",
+   "zone": "hold",
+   "change_1w": -0.0238,
+   "change_4w": -0.1373,
+   "change_13w": -0.0522,
+   "plan": {
+    "action": "hold",
+    "pace": 0.0,
+    "text": "Accumulate cash; no buys or sells"
+   }
+  },
+  {
+   "key": "ada",
+   "name": "Cardano",
+   "symbol": "ADA",
+   "confidence": "low",
+   "date": "2026-10-21",
+   "price": 0.225325,
+   "risk": 0.3276,
+   "risk_week_close": 0.3257,
+   "week_close_date": "2026-10-18",
+   "raw_zone": "buy",
+   "zone": "buy",
+   "change_1w": -0.0158,
+   "change_4w": -0.0078,
+   "change_13w": 0.1873,
    "plan": {
     "action": "buy",
     "pace": 0.05,
