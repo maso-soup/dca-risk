@@ -1,0 +1,53 @@
+{
+ "generated": "2026-10-22T15:40Z",
+ "zones": [
+  {
+   "max": 0.2,
+   "key": "strong_buy",
+   "label": "Strong Buy"
+  },
+  {
+   "max": 0.4,
+   "key": "buy",
+   "label": "Buy"
+  },
+  {
+   "max": 0.6,
+   "key": "hold",
+   "label": "Hold"
+  },
+  {
+   "max": 0.8,
+   "key": "trim",
+   "label": "Trim"
+  },
+  {
+   "max": 1.01,
+   "key": "sell",
+   "label": "Sell"
+  }
+ ],
+ "assets": [
+  {
+   "key": "btc",
+   "name": "Bitcoin",
+   "symbol": "BTC",
+   "confidence": "high",
+   "date": "2026-10-21",
+   "price": 84176.079646,
+   "risk": 0.3494,
+   "risk_week_close": 0.3333,
+   "week_close_date": "2026-10-18",
+   "raw_zone": "buy",
+   "zone": "buy",
+   "change_1w": 0.0204,
+   "change_4w": -0.0028,
+   "change_13w": 0.1763,
+   "plan": {
+    "action": "buy",
+    "pace": 0.05,
+    "text": "Deploy 5.0% of cash reserve per week (+ new contributions)"
+   }
+  }
+ ]
+}

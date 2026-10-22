@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DCA Risk Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<style>
+:root {
+  color-scheme: light;
+  --surface-0: #f5f4f1; --surface-1: #fcfcfb; --border: #e3e2de;
+  --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #7a7974;
+  --grid: #ecebe7;
+  --series-1: #2a78d6; --series-2: #eb6834; --series-neutral: #9a9893;
+  /* diverging risk scale: cheap (blue) -> neutral (gray) -> expensive (red) */
+  --z-strong_buy: #1c5cab; --z-buy: #6da7ec; --z-hold: #b9b8b2; --z-trim: #ec8f8e; --z-sell: #d03b3b;
+  --z-ink-strong_buy: #fff; --z-ink-buy: #0b0b0b; --z-ink-hold: #0b0b0b; --z-ink-trim: #0b0b0b; --z-ink-sell: #fff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface-0: #121211; --surface-1: #1a1a19; --border: #2e2e2c;
+    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e88;
+    --grid: #262624;
+    --series-1: #3987e5; --series-2: #d95926; --series-neutral: #6f6e69;
+    --z-strong_buy: #3987e5; --z-buy: #86b6ef; --z-hold: #5c5b57; --z-trim: #e66767; --z-sell: #d03b3b;
+    --z-ink-strong_buy: #fff; --z-ink-buy: #0b0b0b; --z-ink-hold: #f0efec; --z-ink-trim: #0b0b0b; --z-ink-sell: #fff;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0: #121211; --surface-1: #1a1a19; --border: #2e2e2c;
+  --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e88;
+  --grid: #262624;
+  --series-1: #3987e5; --series-2: #d95926; --series-neutral: #6f6e69;
+  --z-strong_buy: #3987e5; --z-buy: #86b6ef; --z-hold: #5c5b57; --z-trim: #e66767; --z-sell: #d03b3b;
+  --z-ink-strong_buy: #fff; --z-ink-buy: #0b0b0b; --z-ink-hold: #f0efec; --z-ink-trim: #0b0b0b; --z-ink-sell: #fff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--surface-0); color: var(--text-primary);
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; }
+header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 15px; margin: 0 0 4px; }
+.sub { color: var(--text-secondary); font-size: 13px; }
+.muted { color: var(--text-muted); font-size: 12px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 18px 0; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px;
+  cursor: pointer; text-align: left; color: inherit; font: inherit; }
+.card[aria-pressed="true"] { outline: 2px solid var(--series-1); outline-offset: -1px; }
+.card .top { display: flex; justify-content: space-between; align-items: center; }
+.card .sym { font-weight: 600; }
+.card .risk { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; margin: 6px 0 2px; }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 999px; }
+.meter { position: relative; height: 6px; border-radius: 3px; margin: 8px 0 6px;
+  background: linear-gradient(90deg, var(--z-strong_buy) 0 20%, var(--z-buy) 20% 40%, var(--z-hold) 40% 60%, var(--z-trim) 60% 80%, var(--z-sell) 80%); }
+.meter i { position: absolute; top: -4px; width: 4px; height: 14px; margin-left: -2px; border-radius: 2px;
+  background: var(--text-primary); box-shadow: 0 0 0 2px var(--surface-1); }
+.delta { font-variant-numeric: tabular-nums; }
+.panel { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+.hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+.action { font-size: 18px; font-weight: 600; margin: 6px 0; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-variant-numeric: tabular-nums; }
+.kv dt { color: var(--text-secondary); } .kv dd { margin: 0; }
+.tbl { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); }
+th { color: var(--text-secondary); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; }
+.bar { height: 6px; border-radius: 3px; background: var(--grid); position: relative; min-width: 80px; }
+.bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+.chart { width: 100%; height: 340px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+  margin-right: 5px; vertical-align: -1px; background: var(--c); }
+.ranges { display: flex; gap: 6px; }
+.ranges button { background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+  border-radius: 6px; padding: 3px 9px; font: inherit; font-size: 12px; cursor: pointer; }
+.ranges button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); border-color: var(--text-primary); }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.win { color: #0ca30c; } .loss { color: #d03b3b; }
+details summary { cursor: pointer; color: var(--text-secondary); }
+@media (max-width: 760px) { .hero { grid-template-columns: 1fr; } .hide-sm { display: none; } .chart { height: 280px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>DCA Risk Dashboard</h1>
+      <div class="sub">Long-horizon risk 0.0 (historically cheap) → 1.0 (historically expensive). Weekly close drives the signal.</div>
+    </div>
+    <div class="muted" id="generated"></div>
+  </header>
+
+  <div class="cards" id="cards"></div>
+
+  <section id="detail"></section>
+
+  <details class="panel">
+    <summary>How this works</summary>
+    <p class="sub">Each component is scored point-in-time (no future data): its value is z-scored against an
+      exponentially weighted history (≈4-year half-life, about one cycle) and mapped to 0–1. Cycle metrics carry most of the
+      weight. The composite is evaluated at each weekly close; the zone only changes after <b>2 consecutive weekly closes</b>
+      in a new zone, so it won't flip-flop at boundaries.</p>
+    <p class="sub"><b>Strong Buy</b> &lt;0.2: deploy 1/8 of cash reserve per week (≈2 months). <b>Buy</b> 0.2–0.4: deploy 1/20 per week
+      (≈5 months). <b>Hold</b> 0.4–0.6: accumulate cash. <b>Trim</b> 0.6–0.8: sell 0–1% of holdings per week.
+      <b>Sell</b> &gt;0.8: sell 1% rising to 15% per week at 1.0. Can go to 100% cash.</p>
+    <p class="sub">Not financial advice. A model fit to a handful of cycles; past cycles may not repeat.</p>
+  </details>
+</div>
+
+<script>
+const ZL = { strong_buy: "Strong Buy", buy: "Buy", hold: "Hold", trim: "Trim", sell: "Sell" };
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmtPx = v => v >= 1000 ? "$" + v.toLocaleString(undefined, { maximumFractionDigits: 0 })
+  : "$" + v.toLocaleString(undefined, { maximumSignificantDigits: 4 });
+const fmtMoney = v => "$" + Math.round(v).toLocaleString();
+const sgn = v => v == null ? "–" : (v > 0 ? "+" : "") + v.toFixed(2);
+const badge = z => `<span class="badge" style="background:var(--z-${z});color:var(--z-ink-${z})">${ZL[z]}</span>`;
+const cache = {};
+let index, current, range = "all";
+
+function layout(extra = {}) {
+  return Object.assign({
+    paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+    font: { family: "-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", size: 12, color: css("--text-secondary") },
+    margin: { l: 56, r: 12, t: 8, b: 32 }, showlegend: false, hovermode: "x unified",
+    hoverlabel: { bgcolor: css("--surface-1"), bordercolor: css("--border"), font: { color: css("--text-primary") } },
+    xaxis: { gridcolor: css("--grid"), linecolor: css("--border"), zeroline: false, showspikes: true,
+             spikecolor: css("--text-muted"), spikethickness: 1, spikedash: "solid", spikemode: "across" },
+    yaxis: { gridcolor: css("--grid"), linecolor: css("--border"), zeroline: false },
+  }, extra);
+}
+const cfg = { displayModeBar: false, responsive: true };
+
+function riskColorscale() {
+  return [[0, css("--z-strong_buy")], [0.3, css("--z-buy")], [0.5, css("--z-hold")], [0.7, css("--z-trim")], [1, css("--z-sell")]];
+}
+
+function xrange(dates) {
+  if (range === "all") return undefined;
+  const end = new Date(dates[dates.length - 1]);
+  const start = new Date(end); start.setFullYear(end.getFullYear() - +range);
+  return [start.toISOString().slice(0, 10), dates[dates.length - 1]];
+}
+
+function renderCards() {
+  document.getElementById("cards").innerHTML = index.assets.map(a => `
+    <button class="card" data-key="${a.key}" aria-pressed="${a.key === current}">
+      <div class="top"><span class="sym">${a.symbol} <span class="muted">${a.name}</span></span>${badge(a.zone)}</div>
+      <div class="risk">${a.risk.toFixed(2)}</div>
+      <div class="meter"><i style="left:${(a.risk * 100).toFixed(1)}%"></i></div>
+      <div class="muted delta">1w ${sgn(a.change_1w)} · 4w ${sgn(a.change_4w)} · ${fmtPx(a.price)}</div>
+      ${a.confidence !== "high" ? `<div class="muted">Confidence: ${a.confidence}</div>` : ""}
+    </button>`).join("");
+  document.querySelectorAll(".card").forEach(b => b.onclick = () => select(b.dataset.key));
+}
+
+async function select(key) {
+  current = key; renderCards();
+  history.replaceState(null, "", "#" + key);
+  cache[key] ??= await fetch(`data/${key}.json`).then(r => r.json());
+  renderDetail(cache[key]);
+}
+
+function renderDetail(d) {
+  const L = d.latest, bt = d.backtest;
+  const zoneChanged = L.raw_zone !== L.zone;
+  document.getElementById("detail").innerHTML = `
+    <div class="panel hero">
+      <div>
+        <div class="row"><h2>${d.name} — this week</h2>${badge(L.zone)}</div>
+        <div class="action">${L.plan.text}</div>
+        <div class="sub">${zoneChanged
+          ? `This week's reading is in <b>${ZL[L.raw_zone]}</b>; the zone switches after 2 consecutive weekly closes there.`
+          : `Confirmed by weekly closes. Next close: Sunday.`}</div>
+        <p class="muted">${d.note}</p>
+      </div>
+      <dl class="kv">
+        <dt>Risk today (${L.date})</dt><dd><b>${L.risk.toFixed(3)}</b></dd>
+        <dt>Last weekly close (${L.week_close_date})</dt><dd>${L.risk_week_close.toFixed(3)}</dd>
+        <dt>Change 1w / 4w / 13w</dt><dd>${sgn(L.change_1w)} / ${sgn(L.change_4w)} / ${sgn(L.change_13w)}</dd>
+        <dt>Price</dt><dd>${fmtPx(L.price)}</dd>
+      </dl>
+    </div>
+
+    <div class="panel">
+      <div class="row"><h2>Price, colored by risk</h2>
+        <div class="ranges">${["2", "4", "8", "all"].map(r =>
+          `<button data-r="${r}" aria-pressed="${r === range}">${r === "all" ? "All" : r + "Y"}</button>`).join("")}</div></div>
+      <div class="chart" id="c-price"></div>
+      <div class="legend">${Object.keys(ZL).map(z => `<span style="--c:var(--z-${z})">${ZL[z]}</span>`).join("")}</div>
+    </div>
+
+    <div class="panel">
+      <h2>Composite risk</h2>
+      <div class="muted">Daily line; shaded bands are the zones.</div>
+      <div class="chart" id="c-risk"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Components</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Metric</th><th class="hide-sm">Group</th><th class="num">Weight</th><th class="num">Current value</th><th class="num">Score</th><th></th></tr></thead>
+        <tbody>${d.components.map(c => {
+          const z = c.score < .2 ? "strong_buy" : c.score < .4 ? "buy" : c.score < .6 ? "hold" : c.score < .8 ? "trim" : "sell";
+          const raw = c.fmt === "x" ? c.raw.toFixed(2) + "×" : c.fmt === "rsi" ? c.raw.toFixed(1) : (c.raw > 0 ? "+" : "") + c.raw.toFixed(3);
+          return `<tr><td>${c.label}</td><td class="muted hide-sm">${c.group}</td><td class="num">${Math.round(c.weight * 100)}%</td>
+            <td class="num">${raw}</td><td class="num">${c.score.toFixed(2)}</td>
+            <td><div class="bar"><i style="width:${c.score * 100}%;background:var(--z-${z})"></i></div></td></tr>`;
+        }).join("")}</tbody>
+      </table></div>
+    </div>
+
+    <div class="panel">
+      <h2>Backtest: risk-based DCA vs plain weekly DCA</h2>
+      <div class="muted">Both get ${fmtMoney(bt.contribution)}/week. Idle cash earns the 3-month T-bill rate. Rerun from several start dates.</div>
+      <div class="tbl"><table style="margin-top:8px">
+        <thead><tr><th>Start</th><th class="num">Contributed</th><th class="num">Risk strategy</th><th class="num">Plain DCA</th>
+          <th class="num">Multiple (risk / DCA)</th><th class="num">Max drawdown (risk / DCA)</th></tr></thead>
+        <tbody>${bt.runs.map(r => `<tr><td>${r.start}</td><td class="num">${fmtMoney(r.contributed)}</td>
+          <td class="num">${fmtMoney(r.risk_value)}</td><td class="num">${fmtMoney(r.dca_value)}</td>
+          <td class="num ${r.risk_multiple >= r.dca_multiple ? "win" : "loss"}">${r.risk_multiple}× / ${r.dca_multiple}×</td>
+          <td class="num">${Math.round(r.risk_max_drawdown * 100)}% / ${Math.round(r.dca_max_drawdown * 100)}%</td></tr>`).join("")}</tbody>
+      </table></div>
+      <div class="row" style="margin-top:14px"><h2>Portfolio value from ${bt.runs[0].start} (log scale)</h2></div>
+      <div class="chart" id="c-bt"></div>
+      <div class="legend"><span style="--c:var(--series-1)">Risk strategy</span><span style="--c:var(--series-2)">Plain DCA</span>
+        <span style="--c:var(--series-neutral)">Contributed</span></div>
+      <div class="chart" id="c-alloc" style="height:180px"></div>
+    </div>`;
+
+  document.querySelectorAll(".ranges button").forEach(b => b.onclick = () => { range = b.dataset.r; renderDetail(d); });
+  drawCharts(d);
+}
+
+function drawCharts(d) {
+  const D = d.daily, xr = xrange(D.date);
+  Plotly.newPlot("c-price", [{
+    x: D.date, y: D.price, type: "scattergl", mode: "markers",
+    marker: { size: 3, color: D.risk, colorscale: riskColorscale(), cmin: 0, cmax: 1 },
+    customdata: D.risk, hovertemplate: "%{y:$,.4~g}<br>risk %{customdata:.2f}<extra></extra>",
+  }], layout({ yaxis: { ...layout().yaxis, type: "log", dtick: 1, tickprefix: "$" }, xaxis: { ...layout().xaxis, range: xr } }), cfg);
+
+  const zones = index.zones;
+  const shapes = zones.map((z, i) => ({ type: "rect", xref: "paper", x0: 0, x1: 1, yref: "y",
+    y0: i ? zones[i - 1].max : 0, y1: Math.min(z.max, 1), fillcolor: css("--z-" + z.key), opacity: .14, line: { width: 0 }, layer: "below" }));
+  Plotly.newPlot("c-risk", [
+    { x: D.date, y: D.risk, type: "scatter", mode: "lines", line: { color: css("--text-primary"), width: 1.5 },
+      hovertemplate: "risk %{y:.2f}<extra></extra>" },
+  ], layout({ shapes, yaxis: { ...layout().yaxis, range: [0, 1], dtick: .2 }, xaxis: { ...layout().xaxis, range: xr } }), cfg);
+
+  const C = d.backtest.curve;
+  Plotly.newPlot("c-bt", [
+    { x: C.date, y: C.contributed, name: "Contributed", line: { color: css("--series-neutral"), width: 1.5 }, hovertemplate: "%{y:$,.0f}" },
+    { x: C.date, y: C.dca_value, name: "Plain DCA", line: { color: css("--series-2"), width: 2 }, hovertemplate: "%{y:$,.0f}" },
+    { x: C.date, y: C.value, name: "Risk strategy", line: { color: css("--series-1"), width: 2 }, hovertemplate: "%{y:$,.0f}" },
+  ], layout({ yaxis: { ...layout().yaxis, type: "log", dtick: 1, tickprefix: "$" } }), cfg);
+  Plotly.newPlot("c-alloc", [
+    { x: C.date, y: C.in_market, name: "% in market", type: "scatter", fill: "tozeroy", line: { color: css("--series-1"), width: 1.5 },
+      fillcolor: css("--series-1") + "33", hovertemplate: "%{y:.0%} in market<extra></extra>" },
+  ], layout({ yaxis: { ...layout().yaxis, range: [0, 1], tickformat: ".0%", title: { text: "Risk strategy % in market", font: { size: 11 } } } }), cfg);
+}
+
+(async () => {
+  index = await fetch("data/index.json").then(r => r.json());
+  document.getElementById("generated").textContent = "Updated " + index.generated.replace("T", " ").replace("Z", " UTC");
+  const want = location.hash.slice(1);
+  await select(index.assets.some(a => a.key === want) ? want : index.assets[0].key);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => cache[current] && renderDetail(cache[current]));
+})();
+</script>
+</body>
+</html>
